@@ -55,7 +55,9 @@ export async function extractVersions(packageName){
         resolve(versions);
     })
 }
-
+// suppose package have 3 versions v1 v2 
+// packageV1 have dependencies d11 v11 , d12 v12
+// packageV2 have dependencies d21 v21 
 export async function getPackageInfo(packageName){
 return new Promise(async(resolve,reject)=>{
 try{
@@ -83,3 +85,4 @@ for(let version in versions_info){
     }
 })
 }
+//returns a promise that resolves with [  [v1,[[d11,v11],[d12,v12]]],  [v2,[[d21,v21]]  ] 
