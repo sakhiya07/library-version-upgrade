@@ -1,0 +1,7 @@
+node_modules
+.yarn/cache
+.yarn/install-state.gz
+package-lock.json
+yarn-error.log
+.vscode
+.DS_Store
