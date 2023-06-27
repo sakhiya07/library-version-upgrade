@@ -35,7 +35,7 @@ async function fillPackageCache(packageName,packageInfo){
                 versions.push(version);
                 dependencyCache.set(`${stringify([packageName,version])}`,dependencies);
             })
-            sortVersions(sortVersions(versions));
+            versions = sortVersions(versions);
             versionCache.set(`${packageName}`,versions);
             resolve();
         }))
@@ -65,6 +65,7 @@ async function removePrefixes(packageName,packageVersion){
 }
 async function getCurrentVersion(packageName){
     return new Promise(async(resolve,reject)=>{
+    if(badPackages.has(`${packageName}`)){resolve('0.0.0');return;}
     let version=await removePrefixes(packageName,packageJSON.dependencies[`${packageName}`]);
     resolve(version);
     }
@@ -82,30 +83,7 @@ function getDependentsByYarn(packageName){
 //handelling the range cases (only required rarely) 
 function allPossibleUpdates(version,allVersions){
     
-    if(version.startsWith('*')){
-        return [allVersions[allVersions.length-1]];
-    }
-    if(version.split('.').length<3){
-        if(version.split('.').length==2)version=`~${version}.0`;
-        else version=`^${version}.0.0`;
-    }
-    if(version.startsWith('^')){
-        version=version.slice(1);
-        let favourable_versions = allVersions.filter((item)=>`${item.split('.')[0]}`==`${version.split('.')[0]}`);       
-        return favourable_versions;
-    }
-    else if(version.startsWith('~')){
-        version=version.slice(1);
-        let favourable_versions = allVersions.filter((item)=>`${item.split('.')[0]==version.split('.')[0]}` && `${item.split('.')[1]==version.split('.')[1]}`);
-        return favourable_versions;
-    }
-    else if(version.startsWith('<=')){
-        return [version.slice('2')];
-    }
-    else if(version.startsWith('>=')||version.startsWith('>')){
-        return [allVersions[allVersions.length-1]];
-    }
-    else return [version.split(/=|~|=|<|>/).join('').split('^').join('')];
+    return allVersions.filter((item)=>semver.satisfies(item,version));
 }
 //***************************************************************************************************************************************//
 //returns direct dependencies of a package [[dependency1,v1],[dependency2,v2],......]
@@ -121,7 +99,6 @@ async function getDirectDependencies(packageName,packageVersion,flag){
   
     if(`${dependencyCache.get(`${stringify(Package)}`)}`==`undefined`){
         badPackages.add(`${packageName}`);
-       
         resolve([]);    
     }
     else{
@@ -154,12 +131,13 @@ async function getAllDependencies(packageName,packageVersion,flag){
         let newPackages_temp=[];
         newPackages=newPackages.map((item)=>getDirectDependencies(item[0],item[1],flag));
         newPackages = await Promise.all(newPackages);
-       
+        
         newPackages.forEach((items)=>newPackages_temp.push(...items));
       
         newPackages_temp=newPackages_temp.filter((item)=>!(alldependencies.has(`${stringify(item)}`)));
         newPackages=[...newPackages_temp];
-        newPackages = await Promise.all(newPackages.map(async(item)=>[item[0],`${await removePrefixes(`${item[0]}`,`${item[1]}`)}`]));
+        newPackages = removeDuplicates(newPackages);
+        
     }
     
     resolve([...alldependencies].map((item)=>destringify(item)));})
@@ -262,10 +240,7 @@ async function doTask(Package,flag){
         }).catch((message)=>console.log(message)).finally(()=>console.timeEnd('binary search on full graph'));
     
 }
-doTask(['ansi-regex','2.1.1'],1);
-//getAllDependencies('css-loader','0.28.8',0).then((item)=>console.log(item.filter(item=>`${item[0]}`==`ansi-regex`)));
-//getAllDependencies('css-loader','0.28.0',1).then((item)=>console.log(item.filter(item=>`${item[0]}`==`ansi-regex`)));
-//getPackageVersionsList('ansi-regex').then((item)=>console.log(item));
+doTask(['source-map-js','1.0.2'],0);
 
 
 

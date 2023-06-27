@@ -11,7 +11,7 @@ export function removePrefix(version,allVersions){
 // packageV1 have dependencies d11 v11 , d12 v12
 // packageV2 have dependencies d21 v21 
 let runningCalls=0;
-let maxSimultaneousCalls=30;
+let maxSimultaneousCalls=20;
 async function waiting(){
     return new Promise((resolve,reject)=>{
         const timer = setInterval(() => {
@@ -48,7 +48,6 @@ for(let version in versions_info){
     }
     resolve(dependencies);
     }catch{
-        console.log(packageName);
         resolve([]);
     }
 })
