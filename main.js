@@ -1,5 +1,6 @@
-import { directDependency , extractVersions ,getPackageInfo,removePrefix} from './api_calls.js';
+import {getPackageInfo,removePrefix} from './api_calls.js';
 import { getDependents } from './yarn_why_parsing.js';
+import semver from 'semver' 
 import fs from 'fs'
 //import { getDependents } from './npm_why_parsing.js'
 const packageJSON=JSON.parse(fs.readFileSync('package.json','utf-8'));
@@ -23,6 +24,9 @@ async function fetchPackageInfo(packageName){
     return apiCache.get(`${packageName}`);
 }
 // once we have the response of api call we will set versions and dependencies in our respective caches
+function sortVersions(versions){
+   return versions.sort((a,b)=>semver.compare(a,b));
+}
 async function fillPackageCache(packageName,packageInfo){
     if(!fillInfoCache.has(`${packageName}`)){
         fillInfoCache.set(`${packageName}`,new Promise((resolve,reject)=>{
@@ -31,6 +35,7 @@ async function fillPackageCache(packageName,packageInfo){
                 versions.push(version);
                 dependencyCache.set(`${stringify([packageName,version])}`,dependencies);
             })
+            sortVersions(sortVersions(versions));
             versionCache.set(`${packageName}`,versions);
             resolve();
         }))
@@ -40,8 +45,11 @@ async function fillPackageCache(packageName,packageInfo){
 //fetching data if necessary and then filling caches if not done
 async function extractPackageInfo(packageName){
     return new Promise(async(resolve,reject)=>{
-    let packageInfo=await fetchPackageInfo(packageName);
-    await fillPackageCache(packageName,packageInfo);
+    let packageInfo=await fetchPackageInfo(`${packageName}`);
+    if(packageInfo.length)
+        await fillPackageCache(packageName,packageInfo);
+    else
+        badPackages.add(`${packageName}`);
     resolve();
 })
 }
@@ -51,7 +59,7 @@ async function extractPackageInfo(packageName){
 async function removePrefixes(packageName,packageVersion){
     return new Promise(async(resolve,reject)=>{
         let allVersions = await getPackageVersionsList(packageName);
-        if(badPackages.has(packageName))resolve('0.0.0');
+        if(badPackages.has(`${packageName}`))resolve('0.0.0');
         resolve(removePrefix(packageVersion,allVersions));
     })
 }
@@ -105,21 +113,22 @@ async function getDirectDependencies(packageName,packageVersion,flag){
   
     let packageVersioneq = await removePrefixes(packageName,packageVersion);  
     return new Promise(async (resolve,reject)=>{
-    if(badPackages.has(`${packageName}`))resolve([]);
+    if(badPackages.has(`${packageName}`)){resolve([]);return}
     let Package=[packageName,packageVersioneq];
-    if(!dependencyCache.has(stringify(Package))){
+    if(`${dependencyCache.get(`${stringify(Package)}`)}`==`undefined`){
         await extractPackageInfo(packageName);      
     }
   
-    if(`${dependencyCache.get(stringify(Package))}`==`undefined`){
-        badPackages.add(packageName);
-        resolve([]);      
+    if(`${dependencyCache.get(`${stringify(Package)}`)}`==`undefined`){
+        badPackages.add(`${packageName}`);
+       
+        resolve([]);    
     }
     else{
         let dependencies=[...(dependencyCache.get(`${stringify(Package)}`))];
         if(flag){
-            let range = allPossibleUpdates(packageVersion,versionCache.get(`${packageName}`));
-            range=range.map((item)=>[packageName,item]);
+            let range = allPossibleUpdates(packageVersion,[...versionCache.get(`${packageName}`)]);
+            range=range.map((item)=>[`${packageName}`,item]);
             dependencies.push(...range);
         }
           resolve(dependencies);
@@ -150,8 +159,7 @@ async function getAllDependencies(packageName,packageVersion,flag){
       
         newPackages_temp=newPackages_temp.filter((item)=>!(alldependencies.has(`${stringify(item)}`)));
         newPackages=[...newPackages_temp];
-        newPackages=removeDuplicates(newPackages);
-    
+        newPackages = await Promise.all(newPackages.map(async(item)=>[item[0],`${await removePrefixes(`${item[0]}`,`${item[1]}`)}`]));
     }
     
     resolve([...alldependencies].map((item)=>destringify(item)));})
@@ -161,8 +169,7 @@ async function getPackageVersionsList(packageName){
     return new Promise(async (resolve,reject)=>{
         
         if(!versionCache.has(`${packageName}`)){
-           await extractPackageInfo(packageName);
-           
+           await extractPackageInfo(packageName);  
         }
         resolve (versionCache.get(`${packageName}`));        
 })
@@ -179,28 +186,29 @@ function getAllPossibleUpdates(packages,allVersions){
 async function minNecessaryUpdate(rootPackageName,rootPackageVersion,dependencyName,DependencyRequiredVersion,flag){
     let rootPackageVersions = await getPackageVersionsList(rootPackageName);
     let dependencyVersions = await getPackageVersionsList(dependencyName);
-    let inverseRootPackageVersions =new Map();
-    let inverseDependencyVersions=new Map();
-    rootPackageVersions.forEach((item,idx)=>inverseRootPackageVersions.set(`${item}`,idx));
-    dependencyVersions.forEach((item,idx)=>inverseDependencyVersions.set(`${item}`,idx));
-    let rootVersionCount = rootPackageVersions.length;
+    let rootVersionCount = rootPackageVersions.length; 
     let rootindex=rootVersionCount-1,bit=1<<20,last='-1';
     rootPackageVersion = await removePrefixes(rootPackageName,rootPackageVersion); 
+   
     while(bit>0){
-        if(bit<1)bit=0       
-        if(Number(rootindex-bit)>=Number(inverseRootPackageVersions.get(`${rootPackageVersion}`))){          
+        if(bit<1)bit=0  
+        if(Number(rootindex-bit)>=0)
+        if(Number(semver.compare(`${rootPackageVersion}`,`${rootPackageVersions[rootindex-bit]}`)) <= 0){          
             let allcurrentdependencies=await getAllDependencies(`${rootPackageName}`,`${rootPackageVersions[rootindex-bit]}`,flag);
-            let thisdependency=allcurrentdependencies.filter((item)=>(`${item[0]}`==`${dependencyName}`) && (`${inverseDependencyVersions.get(`${item[1]}`)}`!=`undefined`));
+            let thisdependency=await Promise.all(allcurrentdependencies.filter((item)=>(`${item[0]}`==`${dependencyName}`)).map(async(item)=>[item[0],`${await removePrefixes(`${item[0]}`,`${item[1]}`)}`]));
             
             if(thisdependency.length){
                 
                 let dependencyVersion=dependencyVersions[dependencyVersions.length-1];
                 await Promise.all(thisdependency.map((item)=> new Promise(async(resolve,reject)=>{
-                    let thisVersion = await removePrefixes(dependencyName,item[1]);
-                    if(Number(inverseDependencyVersions.get(`${dependencyVersion}`))>Number(inverseDependencyVersions.get(`${thisVersion}`)))dependencyVersion=thisVersion;
+                    let thisVersion = await removePrefixes(`${dependencyName}`,`${item[1]}`);
+                    
+                    if(Number(semver.compare(`${dependencyVersion}`,`${thisVersion}`)) > 0 ){
+                        dependencyVersion=thisVersion;
+                    }
                     resolve();
                 })))
-                if(Number(inverseDependencyVersions.get(`${dependencyVersion}`))>=Number(inverseDependencyVersions.get(`${DependencyRequiredVersion}`))){
+                if(Number(semver.compare(`${dependencyVersion}`,`${DependencyRequiredVersion}`)) >= 0 ){
                    
                     rootindex-=bit;
                     last=dependencyVersion;
@@ -238,22 +246,26 @@ async function listUpdate(flag,mainPackages,dependencyName,DependencyRequiredVer
 //**********************************************************************************************************************************************//
 async function doTask(Package,flag){
     console.time('binary search on full graph');
-        let dependents=getDependentsByYarn(Package[0]); 
+        let dependents=getDependentsByYarn(Package[0]);
+       
         let currentVersions=new Set();
         dependents.forEach((item)=>{
             currentVersions.add(`${stringify(item)}`);
         })
+        
         listUpdate(flag,dependents,...Package).then((arr)=>{        
             arr.forEach(item=>{
                 if(item[1].startsWith('no')){
                     console.log(item[1]);
                 }
-                else if(!currentVersions.has(`${stringify(item)}`))console.log(`update ${item[0]} to ${item[1]}`)});          
+                else if(!currentVersions.has(`${stringify(item)}`))console.log(`update ${item[0]} to ${item[1]}`)});  
         }).catch((message)=>console.log(message)).finally(()=>console.timeEnd('binary search on full graph'));
     
 }
-doTask(['node-fetch','2.6.0'],0);//update node fetch to 2.6.0
-
+doTask(['ansi-regex','2.1.1'],1);
+//getAllDependencies('css-loader','0.28.8',0).then((item)=>console.log(item.filter(item=>`${item[0]}`==`ansi-regex`)));
+//getAllDependencies('css-loader','0.28.0',1).then((item)=>console.log(item.filter(item=>`${item[0]}`==`ansi-regex`)));
+//getPackageVersionsList('ansi-regex').then((item)=>console.log(item));
 
 
 
