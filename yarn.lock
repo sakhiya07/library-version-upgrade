@@ -14299,6 +14299,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"readline@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "readline@npm:1.3.0"
+  checksum: dfaf8e6ac20408ea00d650e95f7bb47f77c4c62dd12ed7fb51731ee84532a2f3675fcdc4cab4923dc1eef227520a2e082a093215190907758bea9f585b19438e
+  languageName: node
+  linkType: hard
+
 "recursive-readdir@npm:^2.0.0":
   version: 2.2.3
   resolution: "recursive-readdir@npm:2.2.3"
@@ -15164,6 +15171,7 @@ __metadata:
     react-waypoint: ^7.0.4
     react-window: ^1.8.5
     react-window-infinite-loader: ^1.0.5
+    readline: ^1.3.0
     recursive-readdir: ^2.0.0
     redux: 4.0.5
     redux-batch-middleware: ^0.2.0

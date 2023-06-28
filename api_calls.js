@@ -2,6 +2,7 @@ import axios from 'axios';
 import semver from 'semver';
 const options={method: 'GET',timeout: 25000};
 export function removePrefix(version,allVersions){
+    
     let favourable_versions=allVersions.filter((item)=>semver.satisfies(`${item}`,`${version}`));
     if(version.startsWith('*')||version.startsWith('<'))
     return favourable_versions[favourable_versions.length - 1];

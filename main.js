@@ -2,7 +2,9 @@ import {getPackageInfo,removePrefix} from './api_calls.js';
 import { getDependents } from './yarn_why_parsing.js';
 import semver from 'semver' 
 import fs from 'fs'
+import readline from 'readline'
 //import { getDependents } from './npm_why_parsing.js'
+const MAXIMUMDISTANCE = 6;
 const packageJSON=JSON.parse(fs.readFileSync('package.json','utf-8'));
 let dependencyCache=new Map();
 let versionCache=new Map();
@@ -59,7 +61,7 @@ async function extractPackageInfo(packageName){
 async function removePrefixes(packageName,packageVersion){
     return new Promise(async(resolve,reject)=>{
         let allVersions = await getPackageVersionsList(packageName);
-        if(badPackages.has(`${packageName}`))resolve('0.0.0');
+        if(badPackages.has(`${packageName}`)){resolve('0.0.0');return;}
         resolve(removePrefix(packageVersion,allVersions));
     })
 }
@@ -126,6 +128,7 @@ async function getAllDependencies(packageName,packageVersion,flag){
     return new Promise(async (resolve,reject)=>{
     let alldependencies=new Set();
     let newPackages=[[packageName,packageVersion]];
+    let iteration=0;
     while(newPackages.length){
         newPackages.forEach((item)=>{alldependencies.add(`${stringify(item)}`);})
         let newPackages_temp=[];
@@ -137,9 +140,10 @@ async function getAllDependencies(packageName,packageVersion,flag){
         newPackages_temp=newPackages_temp.filter((item)=>!(alldependencies.has(`${stringify(item)}`)));
         newPackages=[...newPackages_temp];
         newPackages = removeDuplicates(newPackages);
-        
+        iteration;
+        if(flag && iteration>MAXIMUMDISTANCE)break;
+
     }
-    
     resolve([...alldependencies].map((item)=>destringify(item)));})
 }
 //get an array of versions of a package
@@ -223,7 +227,7 @@ async function listUpdate(flag,mainPackages,dependencyName,DependencyRequiredVer
 }
 //**********************************************************************************************************************************************//
 async function doTask(Package,flag){
-    console.time('binary search on full graph');
+    console.time('completed in ');
         let dependents=getDependentsByYarn(Package[0]);
        
         let currentVersions=new Set();
@@ -237,10 +241,24 @@ async function doTask(Package,flag){
                     console.log(item[1]);
                 }
                 else if(!currentVersions.has(`${stringify(item)}`))console.log(`update ${item[0]} to ${item[1]}`)});  
-        }).catch((message)=>console.log(message)).finally(()=>console.timeEnd('binary search on full graph'));
+        }).catch((message)=>console.log(message)).finally(()=>{console.timeEnd('completed in ');process.exit(0)});
     
 }
-doTask(['source-map-js','1.0.2'],0);
+//doTask(['tslib','2.0.0'],0);
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+rl.question(`provide package name to be update `,(packageName)=>{
+    rl.question(`provide required version `,(reqVersion)=>{
+        rl.question(`provide mode (s for slow / f for fast) `,(mode)=>{
+            let flag=0;
+            if(`${mode}`==`s`)flag=1;
+            doTask([`${packageName}`,`${reqVersion}`],flag);
+            if(flag)console.log(`might take too long.....`);
+        })
+    })
+})
 
 
 
