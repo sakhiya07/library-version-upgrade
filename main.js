@@ -4,7 +4,6 @@ import semver from 'semver'
 import fs from 'fs'
 import readline from 'readline'
 //import { getDependents } from './npm_why_parsing.js'
-const MAXIMUMDISTANCE = 6;
 const packageJSON=JSON.parse(fs.readFileSync('package.json','utf-8'));
 let dependencyCache=new Map();
 let versionCache=new Map();
@@ -141,7 +140,7 @@ async function getAllDependencies(packageName,packageVersion,flag){
         newPackages=[...newPackages_temp];
         newPackages = removeDuplicates(newPackages);
         iteration;
-        if(flag && iteration>MAXIMUMDISTANCE)break;
+        
 
     }
     resolve([...alldependencies].map((item)=>destringify(item)));})
@@ -249,16 +248,14 @@ const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
-rl.question(`provide package name to be update `,(packageName)=>{
-    rl.question(`provide required version `,(reqVersion)=>{
-        rl.question(`provide mode (s for slow / f for fast) `,(mode)=>{
-            let flag=0;
-            if(`${mode}`==`s`)flag=1;
-            doTask([`${packageName}`,`${reqVersion}`],flag);
-            if(flag)console.log(`might take too long.....`);
-        })
-    })
-})
+let packageName = process.argv[2];
+let reqVersion = process.argv[3];
+let flag = 0;
+if(process.argv[4] == '-deep')flag=1;
+
+
+doTask([`${packageName}`,`${reqVersion}`],flag);
+
 
 
 
