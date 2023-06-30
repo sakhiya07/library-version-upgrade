@@ -2,7 +2,7 @@
 
 const axios =require('axios');
 const semver = require('semver');
-const options={method: 'GET',timeout: 25000};
+const options ={method: 'GET',timeout: 25000};
  function removePrefix(version,allVersions){
     
     let favourable_versions=allVersions.filter((item)=>semver.satisfies(`${item}`,`${version}`));

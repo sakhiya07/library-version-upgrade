@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-const apiCalls = require('./api_calls.js');
-const yarnWhyParsing = require('./yarn_why_parsing.js');
-const semver = require('semver');
-
-const getPackageInfo = apiCalls.getPackageInfo;
-const removePrefix = apiCalls.removePrefix;
-const getDependents = yarnWhyParsing.getDependents;
-
+import { getPackageInfo,removePrefix } from 'library-version-upgrade/api_calls.js';
+import { getDependents } from 'library-version-upgrade/yarn_why_parsing.js';
+import semver from 'semver';
+import ora from 'ora';
+import chalk from 'chalk';
+let tasksCompleted=0,totalTasks;
+let spinner = ora(chalk.blue(`generating dependency graph done(${tasksCompleted}/${totalTasks})`));
+//import { getDependents } from './npm_why_parsing.js'
 let dependencyCache=new Map();
 let versionCache=new Map();
 let apiCache=new Map();
@@ -198,6 +198,9 @@ async function minNecessaryUpdate(rootPackageName,rootPackageVersion,dependencyN
         }
         bit/=2;  
     }
+    tasksCompleted++;
+    spinner.text=chalk.blue(`generating dependency graph done(${tasksCompleted}/${totalTasks})`);
+    if(tasksCompleted==totalTasks)spinner.succeed();
     return new Promise((resolve,reject)=>{  
 
     if(`${last}`!='-1'){
@@ -216,6 +219,7 @@ async function listUpdate(flag,mainPackages,dependencyName,DependencyRequiredVer
         );
          Promise.all(promiseList).then((versions)=>{
          resolve(versions.map((item,idx)=>[mainPackages[idx][0],item]));
+
     }).catch((message)=>reject(message));   
 })
 }
@@ -223,19 +227,27 @@ async function listUpdate(flag,mainPackages,dependencyName,DependencyRequiredVer
 async function doTask(Package,flag){
     console.time('completed in ');
         let dependents=getDependentsByYarn(Package[0]);
-       
-        let currentVersions=new Set();
-        dependents.forEach((item)=>{
-            currentVersions.add(`${stringify(item)}`);
+        console.log(`found`,chalk.greenBright(`${dependents.length}`),`dependent(s):`);
+       totalTasks=dependents.length;
+       let currentVersions=new Set();
+       dependents.forEach((item)=>{
+           currentVersions.add(`${stringify(item)}`);
+           console.log(chalk.magenta(`${item[0]}`))
         })
-        
+        spinner.text=chalk.blue(`generating dependency graph done(${tasksCompleted}/${totalTasks})`);
+        spinner.start();
         listUpdate(flag,dependents,...Package).then((arr)=>{        
             arr.forEach(item=>{
+                                
                 if(item[1].startsWith('no')){
-                    console.log(item[1]);
+                    chalk.red(console.log(item[1]));
                 }
-                else if(!currentVersions.has(`${stringify(item)}`))console.log(`update ${item[0]} to ${item[1]}`)});  
-        }).catch((message)=>console.log(message)).finally(()=>{console.timeEnd('completed in ');process.exit(0)});
+                else if(!currentVersions.has(`${stringify(item)}`))console.log(chalk.yellow(`update ${item[0]} to ${item[1]}`))
+                else console.log(chalk.green(chalk.cyanBright(`${item[0]} uptodate`)))})
+        }).catch((message)=>console.log(message))
+          .finally(()=>{
+            console.timeEnd('completed in ');process.exit(0);
+        });
     
 }
 //doTask(['tslib','2.0.0'],0);
