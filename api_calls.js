@@ -1,7 +1,9 @@
-import axios from 'axios';
-import semver from 'semver';
+#!/usr/bin/env node
+
+const axios =require('axios');
+const semver = require('semver');
 const options={method: 'GET',timeout: 25000};
-export function removePrefix(version,allVersions){
+ function removePrefix(version,allVersions){
     
     let favourable_versions=allVersions.filter((item)=>semver.satisfies(`${item}`,`${version}`));
     if(version.startsWith('*')||version.startsWith('<'))
@@ -25,7 +27,7 @@ async function waiting(){
 }
 
 
-export async function getPackageInfo(packageName){
+ async function getPackageInfo(packageName){
 return new Promise(async(resolve,reject)=>{
 try{
     await waiting();
@@ -54,3 +56,4 @@ for(let version in versions_info){
 })
 }
 //returns a promise that resolves with [  [v1,[[d11,v11],[d12,v12]]],  [v2,[[d21,v21]]  ] 
+module.exports={removePrefix,getPackageInfo};

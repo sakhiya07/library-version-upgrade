@@ -1,10 +1,13 @@
-import {getPackageInfo,removePrefix} from './api_calls.js';
-import { getDependents } from './yarn_why_parsing.js';
-import semver from 'semver' 
-import fs from 'fs'
-import readline from 'readline'
-//import { getDependents } from './npm_why_parsing.js'
-const packageJSON=JSON.parse(fs.readFileSync('package.json','utf-8'));
+#!/usr/bin/env node
+
+const apiCalls = require('./api_calls.js');
+const yarnWhyParsing = require('./yarn_why_parsing.js');
+const semver = require('semver');
+
+const getPackageInfo = apiCalls.getPackageInfo;
+const removePrefix = apiCalls.removePrefix;
+const getDependents = yarnWhyParsing.getDependents;
+
 let dependencyCache=new Map();
 let versionCache=new Map();
 let apiCache=new Map();
@@ -63,14 +66,6 @@ async function removePrefixes(packageName,packageVersion){
         if(badPackages.has(`${packageName}`)){resolve('0.0.0');return;}
         resolve(removePrefix(packageVersion,allVersions));
     })
-}
-async function getCurrentVersion(packageName){
-    return new Promise(async(resolve,reject)=>{
-    if(badPackages.has(`${packageName}`)){resolve('0.0.0');return;}
-    let version=await removePrefixes(packageName,packageJSON.dependencies[`${packageName}`]);
-    resolve(version);
-    }
-    )
 }
 function getDependentsByYarn(packageName){
     return getDependents(packageName).map(item=>{
@@ -244,10 +239,7 @@ async function doTask(Package,flag){
     
 }
 //doTask(['tslib','2.0.0'],0);
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+
 let packageName = process.argv[2];
 let reqVersion = process.argv[3];
 let flag = 0;
