@@ -34,6 +34,7 @@ export function setToatalTasks(x){
 export function getSpinner(){
     return spinner;
 }
+
 //returns a promise which resolves with the result of api call
 export async function fetchPackageInfo(packageName) {
   if (!apiCache.has(`${packageName}`)) {
