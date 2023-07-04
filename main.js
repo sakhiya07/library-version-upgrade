@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { getPackageInfo,removePrefix } from 'library-version-upgrade/api_calls.js';
-import { getDependents } from 'library-version-upgrade/yarn_why_parsing.js';
+import { getPackageInfo,removePrefix } from './api_calls.js';
+import { getDependents } from './yarn_why_parsing.js';
 import semver from 'semver';
 import ora from 'ora';
 import chalk from 'chalk';

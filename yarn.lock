@@ -3776,6 +3776,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"child_process@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "child_process@npm:1.0.2"
+  checksum: bd814d82bc8c6e85ed6fb157878978121cd03b5296c09f6135fa3d081fd9a6a617a6d509c50397711df713af403331241a9c0397a7fad30672051485e156c2a1
+  languageName: node
+  linkType: hard
+
 "chokidar@npm:^3.5.2":
   version: 3.5.3
   resolution: "chokidar@npm:3.5.3"
@@ -9924,16 +9931,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"library-version-upgrade@npm:^1.0.13":
-  version: 1.0.13
-  resolution: "library-version-upgrade@npm:1.0.13"
+"library-version-upgrade@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "library-version-upgrade@npm:1.2.1"
   dependencies:
     axios: ^1.4.0
+    chalk: ^5.3.0
+    child_process: ^1.0.2
+    ora: ^6.3.1
     semver: ^7.5.3
     yarn: ^1.22.19
   bin:
-    library-version-upgrade: bin/main
-  checksum: a1f670e5b8a3d413e3b98a04d1bf60781290cc6533adc2129278213d84d96c322ee24fd4b2bbeb5850aaabad97fcb9cdcc8ca66de46409bec9a4b0b8fe8b0fef
+    library-version-upgrade: main.js
+  checksum: 3ffe37506151a5df78cf3bed7e30f7e49e0084807ff0eb9d25c216c470d26a567766df904ae6686d88cda8d6101974fbe909354967234b310211b8550ea12da3
   languageName: node
   linkType: hard
 
@@ -15774,7 +15784,7 @@ __metadata:
     learnyounode: ^4.2.2
     less: 2.5.1
     less-loader: 2.2.0
-    library-version-upgrade: ^1.0.13
+    library-version-upgrade: ^1.2.1
     loader-utils: 0.2.16
     lodash: ^4.17.4
     lost: ^7.1.0
