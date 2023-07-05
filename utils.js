@@ -27,12 +27,41 @@ export function destringify(string) {
   return string.split(`${JOINER}`);
 }
 
-export function setToatalTasks(x){
-    return totalTasks=x;
+export function printDependents(dependents){
+    console.log(`found`, chalk.greenBright(`${dependents.length}`), `dependent(s):`);
+    dependents.forEach((item) => {
+       
+        console.log(chalk.magenta(`${item[0]}`));
+    });
 }
 
-export function getSpinner(){
-    return spinner;
+export function makeSet(dependents){
+    let currentVersions = new Set();
+    dependents.forEach((item) => {
+        currentVersions.add(`${stringify(item)}`);
+       
+    });
+    return currentVersions;
+}
+export function printResult(result, currentVersions){
+    result.forEach((rootPackage) => {
+        if (rootPackage[1].startsWith("no")) {
+            chalk.red(console.log(rootPackage[1]));
+        } else if (!currentVersions.has(`${stringify(rootPackage)}`))
+        console.log(chalk.yellow(`update ${rootPackage[0]} to ${rootPackage[1]}`));
+        else console.log(chalk.green(chalk.cyanBright(`${rootPackage[0]} up to date`)));
+    });
+    }
+
+export function setToatalTasks(num){
+    return totalTasks = num;
+}
+
+export function startSpinner(dependents){
+    spinner.text = chalk.blue(
+        `generating dependency graph done(0/${dependents.length})`
+      );
+      spinner.start();
 }
 
 //returns a promise which resolves with the result of api call
@@ -48,12 +77,8 @@ export function sortVersions(versions) {
   return versions.sort((a, b) => semver.compare(a, b));
 }
 
-//promising to fill package dependencies and versions in caches after extraction
-export async function fillPackageCache(packageName, packageInfo) {
-  if (!fillInfoCache.has(`${packageName}`)) {
-    fillInfoCache.set(
-      `${packageName}`,
-      new Promise((resolve, reject) => {
+function generateFillCachePromise(packageInfo,packageName){
+    return new Promise((resolve, reject) => {
         let versions = [];
         packageInfo.forEach(([version, dependencies]) => {
           versions.push(version);
@@ -66,6 +91,12 @@ export async function fillPackageCache(packageName, packageInfo) {
         versionCache.set(`${packageName}`, versions);
         resolve();
       })
+}
+//promising to fill package dependencies and versions in caches after extraction
+export async function fillPackageCache(packageName, packageInfo) {
+  if (!fillInfoCache.has(`${packageName}`)) {
+    fillInfoCache.set(
+      `${packageName}`,generateFillCachePromise(packageInfo,packageName)
     );
   }
   return fillInfoCache.get(`${packageName}`);
@@ -123,7 +154,6 @@ export async function getDirectDependencies(packageName, packageVersion, flag) {
     if (`${dependencyCache.get(`${stringify(rootPackage)}`)}` == `undefined`) {
       await extractPackageInfo(packageName);
     }
-
     if (`${dependencyCache.get(`${stringify(rootPackage)}`)}` == `undefined`) {
       badPackages.add(`${packageName}`);
       resolve([]);
@@ -131,7 +161,7 @@ export async function getDirectDependencies(packageName, packageVersion, flag) {
       let dependencies = [...dependencyCache.get(`${stringify(rootPackage)}`)];
       if (flag) {
         let range = allPossibleUpdates(packageVersion, [
-          ...versionCache.get(`${packageName}`),
+          ...versionCache.get(`${packageName}`)
         ]);
         range = range.map((item) => [`${packageName}`, item]);
         dependencies.push(...range);
@@ -147,13 +177,12 @@ export function removeDuplicates(packages) {
   packages
     .map((item) => `${stringify(item)}`)
     .forEach((item) => temp.add(`${item}`));
-
   return [...temp].map((item) => destringify(item));
 }
 
 //get all level dependencies [[dependency1,dv1], [dependency2,dv2],......]
 export async function getAllDependencies(packageName, packageVersion, flag) {
-  return new Promise(async (resolve, reject) => {
+  return new Promise (async (resolve, reject) => {
     let alldependencies = new Set();
     let newPackages = [[packageName, packageVersion]];
     let iteration = 0;
@@ -161,18 +190,16 @@ export async function getAllDependencies(packageName, packageVersion, flag) {
       newPackages.forEach((item) => {
         alldependencies.add(`${stringify(item)}`);
       });
-      let newPackages_temp = [];
+      let newPackagesTemp = [];
       newPackages = newPackages.map((item) =>
         getDirectDependencies(item[0], item[1], flag)
       );
       newPackages = await Promise.all(newPackages);
-
-      newPackages.forEach((items) => newPackages_temp.push(...items));
-
-      newPackages_temp = newPackages_temp.filter(
+      newPackages.forEach((items) => newPackagesTemp.push(...items));
+      newPackagesTemp = newPackagesTemp.filter(
         (item) => !alldependencies.has(`${stringify(item)}`)
       );
-      newPackages = [...newPackages_temp];
+      newPackages = [...newPackagesTemp];
       newPackages = removeDuplicates(newPackages);
       iteration;
     }
@@ -279,10 +306,10 @@ export async function minNecessaryUpdate(rootPackageName, rootPackageVersion, de
 // schuduling list update parallely for all the dependents(mainPackages)
 export async function listUpdate(flag,mainPackages,dependencyName,DependencyRequiredVersion) {
   return new Promise(async (resolve, reject) => {
-    let promiseList = mainPackages.map((item) =>
+    let promiseList = mainPackages.map((mainPackage) =>
       minNecessaryUpdate(
-        item[0],
-        item[1],
+        mainPackage[0],//packageName
+        mainPackage[1],//packageVersion
         dependencyName,
         DependencyRequiredVersion,
         flag

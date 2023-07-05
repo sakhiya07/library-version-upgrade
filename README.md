@@ -13,15 +13,22 @@
 ### Overview
 The aim of the project is to help with if there is a package in the dependency graph of your project and now if you want to update that then how much updations are needed for the direct dependencies of your project
  ### Install
- ```
+```
     npm install library-version-upgrade
 ```
-
+OR
+```
+    yarn add library-version-upgrade
+```
 ---
 
 ### Usage
 ```
     library-version-upgrade <dependencyName> <requiredVersion> 
+```
+OR
+```
+    node_modules/.bin/./library-version-upgrade <dependencyName> <requiredVersion> 
 ```
  This will provide with a list of all the packages (which are the dependencies of your project and are depended directly or indirectly on _dependency_) need to be updated and how much you need to update each of these packages , sometimes if all the versions of a package depends on a lower version of _dependency_ then this will be reported.
  ### Note 
