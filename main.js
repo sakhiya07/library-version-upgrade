@@ -12,8 +12,8 @@ async function getUpdates(rootPackage) {
   const dependents = getDependentsByYarn(rootPackage[0]);
   const currentVersions = makeSet(dependents);
   listUpdate( dependents, ...rootPackage)
-    .then((result) => {
-      printResult(rootPackage[0], result,currentVersions);
+    .then(async(result) => {
+      await printResult(rootPackage, result,currentVersions);
     })
     .catch((message) => console.log(message))
     .finally(() => {

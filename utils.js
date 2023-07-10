@@ -46,15 +46,18 @@ export function makeSet(dependents){
 
 export function printResult(dependency, result, currentVersions){
   return new Promise((resolve,reject) => {
-    result.forEach(async(rootPackage) => {
+    Promise.all(result.map(async(rootPackage) => {
+      return new Promise(async(resolve,reject)=>{
         if (rootPackage[1].startsWith("no")) {
             chalk.red(console.log(rootPackage[1]));
-            await printReason(`${rootPackage[0]}` ,`${dependency}`)
+            await printReason(`${rootPackage[0]}` ,dependency)
         } else if (!currentVersions.has(`${stringify(rootPackage)}`))
         console.log(chalk.yellow(`update ${rootPackage[0]} to ${rootPackage[1]}`));
         else console.log(chalk.green(chalk.cyanBright(`${rootPackage[0]} up to date`)));
-    });
-    resolve();
+        resolve();
+      })
+    })).then(() => resolve());
+    
   })
 }
 
@@ -337,13 +340,18 @@ export function extractLatest(dependencies) {
 }
 
 export async function isUpdatePossibe(dependency, rootPackage) {
+    return new Promise(async(resolve,reject) =>{
     let versions = await getAllDependencies(rootPackage[0],rootPackage[1]);
-    versions = versions.filter(([packageName , packageVersion])=> `${packageName}` === `${dependency[0]}`);
+    versions = versions.filter(([packageName , packageVersion])=> `${packageName}` === `${dependency[0]}`)
+                       .map(([packageName , packageVersion]) => removePrefixes(dependency[0],packageVersion));
+    versions = await Promise.all(versions);
+   
     if(versions.length) {
     versions = sortVersions(versions);
-      if(semver.compare(`${versions[0]}`,`${dependency[1]}`) < 0)return false;
+      if(Number(semver.compare(`${versions[0]}`,`${dependency[1]}`)) < 0)resolve(false);
     }
-    return true;
+    resolve(true);
+  })
 }
 
 export async function printReason(rootPackage, dependency) {
@@ -352,14 +360,15 @@ export async function printReason(rootPackage, dependency) {
    
     let allDependencies = await getAllDependencies(rootPackage, rootPackageVersion);
     allDependencies = await extractLatest(allDependencies);
-    allDependencies.filter(async(dependency) => {
-      let result = await isUpdatePossibe(dependency, rootPackage);
-      return !result;
-    })
+    let possible = await Promise.all(
+      allDependencies.map(async(rootPackage) =>  isUpdatePossibe(dependency, rootPackage))
+    );
+    allDependencies = allDependencies.filter((dependency,index) => !possible[index]);
     removeDuplicates(allDependencies);
-    console.log(`The latest versions of following dependencies of`, chalk.greenBright(`${rootPackage}`),`depends on lower version of`,chalk.greenBright(`${dependency} `))
+    console.log(`The latest versions of following dependencies of`, chalk.greenBright(`${rootPackage}`),`depends on lower version of`,chalk.greenBright(`${dependency[0]} `))
     allDependencies.forEach((dependency)=>{
-      console.log(dependency[0]);
+      if(`${dependency[0]}`!=`${rootPackage[0]}`)
+      console.log(chalk.red(dependency[0]));
     })
     resolve();
   })
