@@ -30,6 +30,10 @@ OR
 ```
     node_modules/.bin/./library-version-upgrade <dependencyName> <requiredVersion> 
 ```
+OR 
+```
+    npx library-version-upgrade <dependencyName> <requiredVersion> 
+```
  This will provide with a list of all the packages (which are the dependencies of your project and are depended directly or indirectly on _dependency_) need to be updated and how much you need to update each of these packages , sometimes if all the versions of a package depends on a lower version of _dependency_ then this will be reported.
  ### Note 
  >Peer dependencies and dev dependencies are ignord here so a lower version of _dependency_ can still be present in the lock file.
@@ -41,12 +45,7 @@ OR
 ---
 
  ### Limitations
- The algorithm here assumes that with an upgrade the versions of the dependency graph changes monotonically, this assumption is wrong very rarely and in this case the output might not be true in this still you can try a deeper search by using -deep flag
- ```
-    library-version-upgrade <dependencyName> <requiredVersion> -deep
-```
-This cosiders all the possible paths, the graph grows exponentially and leads to millions of network calls which can take a considerable amount of time and hence prone to socket-timeout errors.
-
+ The algorithm here assumes that with an upgrade the versions of the dependency graph changes monotonically, this assumption is wrong very rarely and in this case the output might not be true.
 ### References
 * [npmjs](https://registry.npmjs.org)
 * [yarn-why](https://classic.yarnpkg.com/lang/en/docs/cli/why/)

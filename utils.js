@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import { getPackageInfo, removePrefix } from "./apiCalls.js";
-import { getDependents } from "./dependentsExtraction.js";
+import { getDependents , printTree} from "./dependentsExtraction.js";
 import semver from "semver";
 import ora from "ora";
 import chalk from "chalk";
+import { execSync } from "child_process";
 
 let tasksCompleted = 0;
 let totalTasks = 0;
@@ -363,12 +364,14 @@ export async function printReason(rootPackage, dependency) {
     let possible = await Promise.all(
       allDependencies.map(async(rootPackage) =>  isUpdatePossibe(dependency, rootPackage))
     );
-    allDependencies = allDependencies.filter((dependency,index) => !possible[index]);
+    allDependencies = allDependencies.filter((dependency,index) => !possible[index]).map((item)=>[item[0]]);
     removeDuplicates(allDependencies);
     console.log(`The latest versions of following dependencies of`, chalk.greenBright(`${rootPackage}`),`depends on lower version of`,chalk.greenBright(`${dependency[0]} `))
     allDependencies.forEach((dependency)=>{
-      if(`${dependency[0]}`!=`${rootPackage[0]}`)
+      if(`${dependency[0]}` != `${rootPackage}`){
       console.log(chalk.red(dependency[0]));
+      printTree(dependency);
+      }
     })
     resolve();
   })

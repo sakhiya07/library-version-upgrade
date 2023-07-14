@@ -7,4 +7,8 @@ export function getDependents(packageName) {
     output = JSON.parse(output);
     return Object.keys(output[`children`]);  
 }
+export function printTree(dependency){
+    const command = `node_modules/.bin/yarn why ${dependency[0]} -R`;
+    console.log(execSync.execSync( command ,{ encoding: 'utf-8' }));
+}
 
