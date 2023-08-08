@@ -137,9 +137,19 @@ export async function removePrefixes(packageName, packageVersion) {
   });
 }
 
+function filterDependents(packageString) {
+  const workspacePattern = /^([^@]+)@workspace:(.*)$/;
+  if (packageString.match(workspacePattern) || (packageString.startsWith('@sprinklr') || packageString.startsWith('spr-')|| packageString.startsWith('@lyearn'))) {
+    return false
+  } 
+  return true;
+}
+
 //get all the packages that are present in package.json and depended directly or indirectly on the package
 export function getDependentsByYarn(packageName) {
-  let dependents = getDependents(packageName).map((item) => {
+  let dependents = getDependents(packageName)
+  .filter(filterDependents)
+  .map((item) => {
     item = item.split("").reverse().join("");
     let version = item.split(":")[0].split("").reverse().join("");
     item = item.replace("@", `${JOINER}`).split("").reverse().join("");
@@ -148,7 +158,7 @@ export function getDependentsByYarn(packageName) {
   });
   printDependents(dependents);
   setToatalTasks(dependents.length);
-  startSpinner(dependents);
+  if(dependents.length) startSpinner(dependents);
   return dependents;
 }
 
@@ -229,6 +239,11 @@ export async function getPackageVersionsList(packageName) {
 export async function minNecessaryUpdate(rootPackageName, rootPackageVersion, dependencyName, DependencyRequiredVersion) {
   let rootPackageVersions = await getPackageVersionsList(rootPackageName);
   let dependencyVersions = await getPackageVersionsList(dependencyName);
+  if(!rootPackageVersions?.length){
+    return  new Promise((resolve,reject) =>{
+      resolve(`${rootPackageName} no versions`);
+    })
+  }
   let rootVersionCount = rootPackageVersions.length;
   let rootindex = rootVersionCount - 1,
     bit = 1 << 20,
@@ -237,7 +252,6 @@ export async function minNecessaryUpdate(rootPackageName, rootPackageVersion, de
     rootPackageName,
     rootPackageVersion
   );
-
   while (bit > 0) {
     if (bit < 1) bit = 0;
     if (Number(rootindex - bit) >= 0)
