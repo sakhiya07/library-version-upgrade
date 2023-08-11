@@ -1,8 +1,8 @@
-## library-version-upgrade
+## dependency-updates-checker
 
 
 ### Table of contents
-* [library-version-upgrade](#library-version-upgrade)
+* [dependency-updates-checker](#dependency-updates-checker)
 * [Overview](#overview)
 * [Install](#install)
 * [Usage](#usage)
@@ -52,10 +52,4 @@ OR
 * [semver](https://www.npmjs.com/package/semver)
 
 ---
-### Author Info 
 
-#### Pradeep Singh
-* Email- [pradeepanddhruv@gmail.com](mailto:pradeepanddhruv@gmail.com)
-* Github- [psychobot-2](https://github.com/psychobot-2)
-
----
