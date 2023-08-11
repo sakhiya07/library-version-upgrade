@@ -12,7 +12,7 @@ export function removePrefix(version, allVersions) {
   if (
     version.startsWith("*") ||
     version.startsWith("<") ||
-    version.startsWith("^") ||
+    // version.startsWith("^") ||
     version.match(versionRangeRegex)
   )
     return favourable_versions[favourable_versions.length - 1];
